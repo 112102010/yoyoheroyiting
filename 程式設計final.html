@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Do you wanna build a snowman</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            background-color: #333;
+            background: url('./img/friend.jpg') no-repeat center center;
+            background-size: cover;
+            /* Dark background */
+            color: #ccc;
+            /* Light text */
+        }
+
+        h1 {
+            text-align: center;
+            color: #fff;
+            /* White text for headings */
+        }
+
+        .center-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /*#startButton {
+            width: 200px;
+            height: 100px;
+            font-size: 16px;
+            cursor: pointer;
+        }*/
+
+        #messageForm {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        #messageInput {
+            width: 70%;
+            padding: 10px;
+            border: 1px solid #555;
+            /* Darker borders */
+            background-color: #222;
+            /* Dark input fields */
+            color: #ddd;
+            /* Light text */
+            border-radius: 5px;
+            outline: none;
+        }
+
+        #messageInput:focus {
+            border-color: dodgerblue;
+        }
+
+        #messageInput::placeholder {
+            color: #777;
+            /* Darker placeholder */
+        }
+
+        #messageInput:focus::placeholder {
+            color: transparent;
+        }
+
+        #sendMessageBtn {
+            padding: 10px 20px;
+            background-color: #555;
+            /* Darker button */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        #sendMessageBtn:hover {
+            background-color: #777;
+            /* Lighter on hover */
+        }
+
+        #messages {
+            padding: 0 20px;
+            overflow-y: scroll;
+            max-height: 300px;
+            background-color: #222;
+            /* Dark background for messages */
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            color: #ccc;
+            /* Light text for messages */
+        }
+
+        .userMessage {
+            background-color: #444;
+            /* Darker user message */
+            text-align: right;
+        }
+
+        .botMessage {
+            background-color: #555;
+            /* Darker bot message */
+            text-align: left;
+        }
+        
+        .full-screen-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('./img/friend.jpg') no-repeat center center;
+            background-size: cover;
+            cursor: pointer;
+        }
+
+        #startButton {
+            padding: 15px 30px;
+            font-size: 18px;
+            color: white;
+            background-color: #dc93f7;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, transform 0.3s;
+        }
+
+        #startButton:hover {
+            background-color: #dc93f7;
+            transform: scale(1.05);
+        }
+
+        #startButton:active {
+            background-color: #dc93f7;
+            transform: scale(0.95);
+        }
+
+        h1 {
+            color: rgb(216, 60, 148); /* 设置标题颜色为红色 */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>=友誼迷霧= ⁄(⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄</h1>
+    
+    <div class="center-container"><button id="startButton"  onclick="removeBackground()">
+        [點我開始] <br>*小力一點我會痛*
+    </button></div>
+   
+    <!--<button id = "startButton">Start Game</button>>-->
+    <form id="messageForm">
+        <input type="text" id="messageInput" placeholder="Type your message here..." required>
+        <button id="sendMessageBtn" type="submit">Send</button>
+    </form>
+    <div id="sceneImage" style="text-align:center; margin-top:20px;">
+        <!-- 圖片將在這裡顯示 -->
+    </div>
+    <div id="messages"></div>
+    <script>
+        var conversationHistory = [];
+
+        var apiKey = prompt("please enter your api key:", "");
+        var userName = prompt("Please enter your name:", "");
+
+        // 宣告 apiKey 變數並傳入 prompt 得到的值
+        
+        if (!apiKey  || !userName) {
+            alert("API key are required to use the chatroom.");
+        } else {
+            document.getElementById('messageForm').addEventListener('submit', function (event) {
+                event.preventDefault();
+                var message = document.getElementById('messageInput').value;
+
+                addToConversationHistory('user', message);
+                displayMessage(message, 'user');
+
+                fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + apiKey, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        "contents": conversationHistory,
+                        "safetySettings": [
+                            {
+                                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                                "threshold": "BLOCK_ONLY_HIGH"
+                            },
+                            {
+                                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                                "threshold": "BLOCK_ONLY_HIGH"
+                            },
+                        ],
+                        "generationConfig": {
+                            "stopSequences": [
+                                ""
+                            ],
+                            "temperature": 1.0,
+                            "maxOutputTokens": 2048,
+                            "topP": 0.8,
+                            "topK": 10
+                        }
+                    })
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        var responseText = data.candidates[0].content.parts[0].text;
+                        addToConversationHistory('model', responseText);
+                        displayMessage(responseText, 'bot');
+                    })
+                    .catch(error => console.error('Error:', error));
+
+                document.getElementById('messageInput').value = '';
+            });
+        }
+        
+        function addToConversationHistory(role, text) {
+            conversationHistory.push({
+                "role": role,
+                "parts": [{
+                    "text": text
+                }]
+            });
+        }
+
+        function displayMessage(message, sender) {
+            var messageElement = document.createElement('div');
+            var formatMessage = formatText(message);
+            messageElement.innerHTML = formatMessage;
+            messageElement.classList.add('message');
+            if (sender === 'user') {
+                messageElement.classList.add('userMessage');
+            } else {
+                messageElement.classList.add('botMessage');
+            }
+            document.getElementById('messages').appendChild(messageElement);
+            // Scroll to bottom
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+            updateSceneImage(message);
+        }
+
+        function updateSceneImage(responseText) {
+            let sceneMatch = responseText.match(/場景：(.*?)\s/); // 使用正則表達式匹配場景描述
+            if (sceneMatch && sceneMatch[1]) {
+                let scene = sceneMatch[1];
+                console.log(scene);
+                // 檢查scene是否包含"宿舍"
+                if (scene.includes("操場上的長凳")) {
+                    document.getElementById('sceneImage').innerHTML = '<img src="./img/bench.jpeg" alt="bench" style="width:500px;">';
+                } else if (scene.includes("教室後排角落")) {
+                    document.getElementById('sceneImage').innerHTML = '<img src="./img/classroom.jpeg" alt="classroom" style="width:500px;">';
+                } else if (scene.includes("學校花園")) {
+                    document.getElementById('sceneImage').innerHTML = '<img src="./img/garden.jpeg" alt="garden" style="width:500px;">';
+                }
+                else {
+                    // 如果不包含"宿舍"，可以在這裡處理其他情況或者不進行任何操作
+                    // 例如清空圖片或顯示預設圖片
+                    document.getElementById('sceneImage').innerHTML = '(自行想像)'; // 清空圖片
+                }
+            }
+        }
+
+        function formatText(text){
+            let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<br><strong>$1</strong>');
+            formattedText = formattedText.replace(/\*(.*?)\s/g, '<br>$1');
+            return formattedText;
+        }
+
+        document.getElementById('startButton').addEventListener('click', function () {
+            conversationHistory.push({
+                "role": 'user',
+                "parts": [{
+                    "text": `腳本：
+                        """
+                        開場：
+                        （場景：操場上的長凳）
+                        ${userName}剛轉校到這所學校，正在操場上獨自吃午飯。
+                        莎莉婭：（微笑著走過來）你好，你是新來的轉校生吧？我是莎莉婭，很高興認識你。
+
+                        選擇A：${userName}：（友善地回應）你好，我是${userName}，也很高興認識你。
+                        選擇B：${userName}：（有些警惕）你好，有什麼事嗎？
+                        交談：
+                        （場景：操場上的長凳）
+                        若選擇A，
+                        莎莉婭：（假裝隨意地）聽說我們班的雅芙以前和你是同一個學校的，是嗎？
+                        選擇A1：${userName}：（點頭）是的，我和雅芙以前是同學。
+                        選擇A2：${userName}：（猶豫）是啊，你怎麼知道？
+
+                        若選擇B，雅芙走過來，看到莎莉婭和${userName}在聊天。
+                        選擇B1：${userName}：（微笑）還好，大家都很友善。
+                        選擇B2：${userName}：（微笑）還在適應中，不過還好。
+
+                        心機之爭：
+                        （場景：教室後排角落）
+                        莎莉婭：（假裝關心）對了，雅芙，我聽說你最近和班長關係很好，是不是有什麼新進展？
+                        選擇A：微微一笑
+                        選擇B：有些不快
+
+                        私下交流：
+                        課後，${userName}與雅芙單獨交流。
+                        選擇A：嘆氣
+                        選擇B：猶豫
+
+                        揭露真相：
+                        （場景：學校花園）
+                        ${userName}和雅芙決定合作，一起揭露莎莉婭的心機。
+                        選擇A：假裝無辜
+                        選擇B：冷笑
+
+                        結局：
+                        開放表達結局：如果${userName}選擇在關鍵時刻表達自己的感受（A4和A5），他與雅芙的關係將變得更加親密和真誠。莎莉婭的心機被揭穿後，她逐漸被孤立，最終悔改。
+                        壓抑感受結局：如果${userName}選擇壓抑自己的感受（B4和B5），則會感到孤立和不被理解。與雅芙的友誼因缺乏信任而受到考驗，但最終兩人的關係更加堅定。
+                        背叛結局：如果${userName}選擇與莎莉婭合作（選擇B5），則背叛雅芙，劇情反轉，最終與雅芙的友誼破裂。
+                        遊戲結尾：
+                        遊戲最後將根據${userName}的選擇提供一段反思，強調在人際關係中開放表達自己感受的重要性，以及這種溝通方式對個人和周圍人的影響。"""
+
+
+                        請根據腳本中的對話，根據"""開場"""到"""交談"""最後到"""結局"""進行，開始一個文字冒險遊戲，每一次的對話，都需要呈現以下格式與資訊：
+                        <場景>：目前故事的背景為何
+                        <選擇>：在每一次的對話中，你都會根據腳本給我可以選擇的動作，根據我選擇的動作繼續接下來的劇情，整體劇情會圍繞腳本發展。
+
+                        
+                        根據我的選擇進行故事就好，不要幫我做出選擇，也不要幫我新增腳本以外的選擇。
+                        讓我依據故事發展作出選擇，所以要讓我看到故事內容，再讓我做選擇，我選擇至多五次就邁向結局。
+                        
+            
+
+                                                        `
+            }]
+        })
+        fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + apiKey, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        "contents": conversationHistory,
+                        "safetySettings": [
+                            {
+                                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
+                                "threshold": "BLOCK_ONLY_HIGH"
+                            },
+                            {
+                                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                                "threshold": "BLOCK_ONLY_HIGH"
+                            },
+                        ],
+                        "generationConfig": {
+                            "stopSequences": [
+                                ""
+                            ],
+                            "temperature": 1.0,
+                            "maxOutputTokens": 2048,
+                            "topP": 0.8,
+                            "topK": 10
+                        }
+                    })
+                })
+                .then(response => response.json())
+                    .then(data => {
+                        var responseText = data.candidates[0].content.parts[0].text;
+                        addToConversationHistory('model', responseText);
+                        displayMessage(responseText, 'bot');
+                    })
+                    .catch(error => console.error('Error:', error));
+        })
+
+        document.getElementById("startButton").addEventListener("click", function() {
+            this.style.display = "none";
+        });
+
+        function removeBackground() {
+            document.body.style.background = "none";
+            document.body.style.backgroundSize = "cover";
+            document.body.style.backgroundColor = "pink"; /* 添加黑色背景 */
+            document.body.style.color = "#ccc"; /* 设置字体颜色为浅灰色 */
+        }
+    </script>
+</body>
+
+</html>
